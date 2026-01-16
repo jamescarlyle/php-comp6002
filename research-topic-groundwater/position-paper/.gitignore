@@ -1,0 +1,12 @@
+final.bbl
+final.blg
+final.aux
+final.log
+final.luabridge.lua
+final.markdown.in
+final.bcf
+final.run.xml
+final.synctex.gz
+llncs.cls
+*.pdf
+\_markdown_final
