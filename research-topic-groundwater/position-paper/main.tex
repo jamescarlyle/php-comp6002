@@ -1,299 +1,190 @@
-\documentclass[]{llncs}
-\usepackage[T1]{fontenc}
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage{geometry}
-\geometry{a4paper, portrait, margin=1.2in}
-\begin{document}
-\title{Developing a ML model for Hydro-JULES}
-\date{November 2025}
-\author{James Carlyle\\\email{james.carlyle@soton.ac.uk}}
-\institute{University of Southampton}
-\maketitle      
-\begin{abstract}
-The recent availability of a high-resolution hydrogeological map for the UK (Hydro-JULES) creates an opportunity to model groundwater using machine learning (ML) techniques at national scale, and provide a comparison and potential augmentation of physical computational models. The aim is to better predict the natural response to rainfall events, allow increased abstraction for housing and datacentres while maintaining the ecology of rivers and wetlands, and forewarn the likelihood of flooding and drought.
+\documentclass[runningheads,orivec]{llncs} 
+\usepackage{amsmath} 
+\usepackage[pipeTables,citations,tableCaptions]{markdown} 
+\usepackage[T1]{fontenc} 
+\usepackage{graphicx} 
+\setkeys{Gin}{width=0.75\linewidth}
+\setlength{\intextsep}{0.3em plus 0em minus 0.3em}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document} 
+\title{Machine learning for sustainable UK groundwater} 
+\author{James W.G. Carlyle\inst{1}} 
+\authorrunning{J.W.G. Carlyle} 
+\institute{University of Southampton} 
+\maketitle
+
+\begin{abstract} 
+    A high-resolution UK hydrogeological map (the British Groundwater Model) now exists, but uses a physics computational model and is frequently inaccurate. There is an opportunity to examine whether machine learning (ML) techniques can improve groundwater height and flow prediction at a national scale. The societal benefits are sustainable water extraction for housing and datacentres, reduced flooding and drought, and improved ecology of rivers and wetlands. 
+    \keywords{Groundwater \and Machine Learning \and Flood \and Drought} 
 \end{abstract}
 
-\section{Introduction}
-Water is a fundamental resource for terrestrial wildlife and human society. It is essential for all agriculture, and can have a huge impact on human health. As a student, I worked in Nepal on a groundwater supply project in 1986, where poor water quality let to a 25\% mortality rate for children below the age of 5 [1] through water-bourne diseases, such as amoebic dysentery. Although clean water provision around the world has improved since then, it remains a critical enabler of good health, and growing populations and a drive for higher living standards continue to put groundwater systems at risk.
+\begin{markdown} 
+## Introduction and Motivation 
 
-Even in more developed countries, groundwater remains a problem; recent climate change has led to greater variability in rainfall, leading to heatwaves and drought, as well as saturation and flooding. Problems are exacerbated by housing and industrial development; either too much abstraction (new housing and datacentre demand), or construction being pushed onto flood plains.
+Water is a fundamental resource for terrestrial wildlife and human society. It is essential for all agriculture, and has a huge impact on human health. I worked in Nepal where contaminated groundwater led to a 25\% mortality rate in children below the age of 5 [@NationalStatisticsOffice2025].  Although clean water provision around the world has improved since then, it remains critical for good health. Growing populations and a drive for higher living standards make groundwater extraction unsustainable.
 
-Groundwater has traditionally been modelled by heuristic-based software, based on limited understanding of the heterogenous geology of the area. This leads to inaccuracy and unsustainable water extraction (abstraction).
+Water is abstracted from rivers, lakes, and the ground, which holds about 30\% of the world's freshwater [@Jomaa2025]. Groundwater has several major advantages - it's a natural reservoir, and is lower in contaminants such as suspended solids and pathogens, resulting in up to 31\% less energy processing to reach drinking quality [@MO20115577]. Groundwater supplies nearly half of the world's drinking water [@Tao2022], and depending on climate, groundwater provides 33-59\% (Europe, North America) of water for agriculture [@UnitedNations2022], [@EEAWAT0072025].
 
-Machine learning offers a compelling alternative that addresses these fundamental limitations. Unlike physics-based models, data-driven machine learning approaches can identify complex patterns and non-linear relationships using only relevant variables, without requiring explicit parametrization of underlying hydrogeology processes. 
+Global groundwater extraction doubled between 1960-2000 [@Wada2010], with satellites such as GRACE-FO showing aquifer depletion exceeding 50 metres in critical regions. In India, 17 km$^3$ has been lost in a single year [@dalin2017groundwater]. Analysis by IPCC suggests that groundwater removal may account for 15\% of global sea-level rise [@GRACEGroundwater], because 80\% of extracted groundwater remains in the oceans [@Wada2016].
 
-This position paper argues that machine learning represents an opportunity to improve groundwater prediction capability, particularly given the growing pressures of climate change, population growth, and abstraction demands on water resources. By benefiting from the pattern-recognition capabilities and computational efficiency of modern machine learning, hydrogeologists  can deliver more accurate, scalable, and responsive groundwater predictions.
+Groundwater recharge needs steady rainfall, but in the UK, rainfall is becoming more sporadic and intense, with rain exceeding 20 mm/h expected four times more often by 2070 [@Kendon2023]. Infiltration rates can halve under dry and compacted soils [@reinsch2024temperate], and so lower groundwater increases the probability of future drought. Subsequent rainfall which isn't adsorbed into the surface causes flood damage, and the run-off overwhelms sewage systems, causing 450,000 sewage discharges in the UK in 2024 [@riverstrust2024sewage] and leading to further environmental damage. Despite this, up to 15\% of England experienced freshwater usage restrictions in 2025 [@Independent2025].
 
-\section{Background}
-Water is abstracted from the ground, from rivers and lakes, and in arid climates from seawater through reverse osmosis. Groundwater holds about 30\% of the world’s freshwater [2]. Groundwater has several major advantages - the ground provides a natural reservoir, and reduces contaminants such as suspended solids, organic matter, and pathogens, resulting in up to 31\% less energy processing to reach drinking quality [3]. Groundwater supplies nearly half of the world's drinking water [4], and depending on climate, groundwater provides 33-59\% (Europe, North America) of water for agriculture [5], [6]
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.75\linewidth]{groundwater-flow.png}
-    \caption{Groundwater Flow and Timescales}
-    \label{fig:placeholder}
-\end{figure}
-Global groundwater extraction doubled between 1960-2000 [7], with aquifer depletion exceeding 50 metres in critical regions. Satellites such as GRACE-FO have shown that significant groundwater depletion is happening in countries like India, where 17 KM$^3$ has been lost in a single year [8]. Analysis by IPCC suggests that groundwater removal may account for 15\% of global sea-level rise [9], because 80\% of extracted groundwater remains in the oceans [10].
+Changes in river flow caused by extraction affect ecological indicators, including invertebrate diversity, algae, bacteria growth, and fish biomass. For example, extraction leads to increased algae biomass but reduced invertebrate richness and organic matter decomposition [@bradley2012ecological].
 
-In the UK, the complaint is that it rains too much. But even here, because of an increase in the intensity of rainfall, with rain exceeding 20 mm/h occurring 4 times more often by 2070 [11], and a reduced ability of parched and compacted ground to adsorb rain, groundwater is getting replenished more slowly. As a result, up to 15\% of England experienced freshwater usage restrictions in 2025 [12], even in November 2025. 
+Effective management of groundwater requires predictive capacity. But groundwater systems present inherently complex prediction problems, as they are influenced by numerous interacting factors, from meteorological variables (precipitation, temperature, evaporation) to human activities (extraction and land use). Groundwater is difficult to model physically since aquifers contain unknown geological discontinuities. Identifying hydrogeological properties is complex because it requires detailed subsurface data, which is difficult to obtain comprehensively [@condon2021global].
 
-Meta-analyses show infiltration rates can halve under bare or compacted rather than vegetated soils, directly linking hydrophobicity to lower water absorption rates in dry soils [13]. The impacts of drought last much longer than the drought itself, and ironically increase the probability of future drought. Meanwhile, sporadic rainfall which isn't adsorbed into the surface causes flooding damage and the run-off overwhelms sewage systems, causing 450,000 sewage discharges in 2024 [14] and leading to further environmental damage as rivers and coasts are polluted.
+## National-scale Groundwater Modelling
 
-Changes in flow regimes caused by abstraction affect river ecological indicators including invertebrate diversity, algae, bacteria, and other microorganism growth, fish biomass, and overall ecosystem health. For example, abstraction tends to increase algae biomass while reducing invertebrate richness and organic matter decomposition [15].
+### A Case Study of the UK
 
-Effective management of groundwater resources requires predictive capacity. Yet groundwater systems present inherently complex prediction problems, as they are influenced by numerous interacting factors from meteorological variables (precipitation, temperature, evaporation) to human activities (such as abstraction and land use changes). Groundwater is difficult to model geologically since aquifers contain unknown geological discontinuities. Identifying hydrogeological and physical properties is complex because it necessitates detailed subsurface data, such as borehole information, which is often difficult to obtain comprehensively [16].
+Groundwater is modelled by physics-based software such as MODFLOW, a 40 year-old finite-difference model written in Fortran, and this demands extensive calibration and knowledge of the heterogeneous geology [@hill2007effective]. Conventional approaches often struggle to model the non-linear characteristics of real-world groundwater systems effectively, as predictions are generated by heuristic methods, rather than observed inputs and outputs [@acerotriana2019beyond].
 
-Traditional physically-based computational models such as MODFLOW, while rigorous, demand extensive calibration and detailed knowledge of local conditions [17], creating bottlenecks in areas where data are sparse or resources limited. Additionally, these conventional approaches often struggle to model the non-linear, non-stationary characteristics of real-world groundwater systems effectively - outputs are calculated from long-established heuristics and a small number of input parameters, rather than being trained by observed inputs and outputs [18].
+The UK's hydrogeology is defined by significant spatial variation:
 
-Recent advances in deep learning architectures, including convolutional neural networks (CNNs), recurrent neural networks (RNNs), and spatial-temporal graph neural networks (ST-GNNs), have demonstrated superior predictive accuracy compared to both traditional shallow networks and conventional numerical methods [19]. 
+|**Region**         |**Dominant Geology**      |**Groundwater Importance**  | 
+|-------------------|--------------------------|----------------------------| 
+|South East England |Chalk, Triassic Sandstone |Very high (>75\%) [@condon2021global]    | 
+|                   |Productive fissured       |                            | 
+|East Midlands      |Jurassic Limestone        |Moderate to high            | 
+|                   |Fissured/inter-granular   |                            | 
+|Wales & Scotland   |Ordovician, Devonian, etc.|Low (ca. 5\%) [@condon2021global]        | 
+|                   |Low permeability          |                            | 
+|Northern England   |Carboniferous Limestone   |Moderate                    |                     
+|                   |Rapid fissured            |                            |
 
-Critically, machine learning techniques show particular promise in sparse data scenarios, handling missing values, and capturing the complex spatial-temporal dependencies that characterize interconnected groundwater systems [20]. For example, there is often a lag between rainfall and groundwater change, as different groundwater systems percolate at different rates.
+: Geology and groundwater importance in the UK.
 
-\section{Literature Review}
-This review classifies work to date by technology approach. The following diagram illustrates the development of methods and techniques used over the last 20 years, from statistical, early neural network and shallow / classical machine learning to more recent deep learning approaches.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{timeline.png}
-    \caption{Timeline of ML techniques applied to groundwater analysis}
-    \label{fig:placeholder}
-\end{figure}
+The British Geological Survey (BGS) has produced the British Groundwater Model (BGWM) [@hydrojules2022britishgwmodel], covering the whole of Great Britain down to 1km scale to simulate transient groundwater dynamics and surface water/groundwater interaction. Such models also exist for other countries, such as China [@yang2025concn]. The purpose of the BGWM is to answer questions such as:
 
-\subsection{Classical Machine Learning Approaches}
-Classical approaches supported prediction of groundwater levels after rainfall though the development and fitting of fine-grained decision trees, providing a degree of interpretability.
+* How can an integrated approach improve the simulation of major flooding events such as the 2013-14 floods?
+* How can a holistic approach be undertaken to assess water resources under drought conditions?
 
-\subsubsection{Support Vector Machines (SVM)}
-Support vector machines emerged as a powerful alternative to early neural networks in the early 2000s. Yoon et al. (2011) [23] conducted a comparative study demonstrating that SVMs outperformed traditional NNs for predicting groundwater levels in coastal aquifers. The technique excelled at handling non-linear relationships by mapping inputs to higher-dimensional spaces using kernel functions, particularly the radial basis function (RBF) kernel.
+![Hydro-JULES grid mapping for BGWM.](../images/uk-geological-grid.png 'Hydro-JULES grid mapping for BGWM.')
 
-\subsubsection{Random Forest (RF)}
-Random forest algorithms have become widely adopted for groundwater modelling due to their ensemble approach and ability to handle high-dimensional datasets while mitigating over-fitting. The method constructs multiple random decision trees using bootstrap sampling and aggregates their predictions with voting to improve robustness. The original paper by Breiman (2001) [25] was considered transformational, and more recently RFs have been demonstrated to support effective spatial prediction [26].
+### Gaps / Issues with the BGWM
 
-\subsubsection{Ensemble Learning: XGBoost, CatBoost, and Gradient Boosting}
-Modern ensemble boosting methods have demonstrated exceptional performance in groundwater applications. Chen and Guestrin (2016) developed XGBoost, which uses regularized model formalization to control over-fitting [27]. XGBoost has shown superior predictive capability in multiple comparative studies [28]. A comprehensive study of six ensemble learning models (RF, AdaBoost, XGBoost, CatBoost, GBDT, and LightGBM) identified XGBoost as having superior performance in groundwater potential mapping [29].
+BGWM is unreliable in several areas [@Bianchi2024BGWM], such as:
 
-\subsection{Neural Network Approaches}
-Neural network approaches model groundwater aquifers using a black-box approach to deep learning, with borehole data providing inputs to hidden layers.
+* Where observation coverage is sparse, simulated heads have high variance (standard deviation often >10 m), making results less reliable.
 
-\subsubsection{Early Artificial Neural Networks (1990s-2000s)}
-The application of NNs in groundwater modelling gained prominence in the early 1990s [30]. Maier and Dandy (2000) published a seminal review that became one of the most influential papers in the field [31], establishing fundamental guidelines for developing neural network models for water resource variables. This comprehensive review outlined essential development stages including performance criteria selection, data division and preprocessing, input variable determination, network architecture design, and model validation.
+* Carboniferous Limestone areas show high standard deviations in simulated heads, again indicating greater calibration uncertainty.
 
-Coulibaly et al. (2001) calibrated three types of NN model using groundwater level and hydro-meteorological data, establishing early benchmarks for model performance [32]. Lallahem et al. (2005) evaluated neural networks for groundwater level estimation in fractured media, publishing influential work in the Journal of Hydrology [33]. Their research demonstrated that NNs with appropriate architecture could effectively model groundwater systems with R² values approaching 0.95.
+* Steep relief areas with strong topographic gradients consistently have larger head uncertainty, so local groundwater levels there are poorly constrained.
 
-Nayak et al. (2006) conducted groundwater level forecasting in shallow aquifers using NN approaches, comparing multiple back-propagation algorithms. The Levenberg-Marquardt algorithm emerged as the best performer, showing superior results with minimum deviation values mostly within ±0.5 meters and acceptable prediction accuracy exceeding 94.52\% [34].
+* Deep flow in limestones and hard rocks: The model assumes groundwater flow  down to 500 m everywhere, which is likely invalid for limestone aquifers and crystalline/metamorphic rocks, where active flow is mostly within a few tens of meters of surface fractures.
 
-\subsubsection{Long Short-Term Memory (LSTM) Networks}
-The introduction of LSTM networks to hydrology marked a paradigm shift in data-driven modelling. Kratzert et al. (2018) [35] published a landmark paper applying LSTM networks to rainfall run-off modelling across 241 catchments. This study demonstrated that LSTMs could learn long-term dependencies essential for modelling storage effects in catchments, outperforming the well-known Sacramento Soil Moisture Accounting Model (SAC-SMA). The work established LSTMs as a viable alternative to traditional hydrological models.
+* Small‑scale heterogeneities (karst features, clay interbeds, tectonic structures) are not resolved; this particularly limits performance in karstic limestones and structurally complex sandstones.
 
-Zhang et al. (2018) [36] developed an LSTM-based model for predicting water table depth in agricultural areas, achieving remarkable accuracy. The LSTM model demonstrated R² scores ranging from 0.789 to 0.952, substantially outperforming traditional feed-forward neural networks. This work showed that dropout methods effectively prevented over-fitting and that LSTM architecture possessed strong learning ability for time series groundwater data.
+* Baseflow in large catchments and peak events: The model tends to underestimate peak baseflows in larger catchments.
 
-Solgi et al. (2021) [37] demonstrated that LSTM networks could predict groundwater levels with exceptional accuracy: R² of at least 99.89\% for one-cycle predictions and 90.00\% for 26-cycle ahead predictions over 17 years of data. The study confirmed LSTM's superiority over feed-forward neural networks in both point prediction and prediction interval tasks.
+This is evident in the map of error for heads and baseflow at sampling sites across the UK, where a significant number of sits show a >50\% mean error rate.
 
-\subsubsection{Convolutional Neural Networks (CNN)}
-Seo and Lee (2021) [38] advanced groundwater modelling by developing CNN-LSTM hybrid architectures, combining CNN's spatial feature extraction with LSTM's temporal dependency handling. The C-LSTM model produced more accurate groundwater simulations than stand-alone CNN or LSTM models and proved particularly effective and that the use of parameters recorded by GRACE-FO (gravity detection) satellites as training data for deep learning models can play an important role in the model’s performance.
+![Observed simulated map of BGWM](../images/observed-simulated-map-bgwm.png 'BGWM observed vs simulated map of heads and baseflow')
 
-\subsubsection{Recent Advances: Physics-Informed and Graph Neural Networks}
-Goswami et al. (2021) [39] introduced DeepONet (deep operator networks) to groundwater modelling, demonstrating that AI-based approaches could successfully address the complexities of simulating subsurface flows. DeepONet uses two deep neural networks (branch and trunk) to learn mappings between infinite-dimensional function spaces.
+### Improving Accuracy at National Scale
 
-Taccari et al. (2024) [40] pioneered the application of spatial-temporal graph neural networks (ST-GNNs) to groundwater level prediction. This innovative approach addresses the limitation of previous neural network methods that predominantly focused on temporal dynamics while overlooking spatial relationships. The ST-GNN model showed significant improvements over traditional methods, particularly for handling missing data and long-term forecasting with minimal bias. The graph-based framework facilitates integration of physical borehole interconnectivity and temporal aspects, capturing complex interactions within groundwater systems over distance and time.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.75\linewidth]{nl-borehole-map.png}
-    \caption{Map of boreholes used in the Taccari et al. ST-GNN model.}
-\end{figure}
+Machine learning (ML) can capture complex patterns and non-linear relationships without requiring explicit parametrization of underlying hydrogeology processes. Recent advances in ML architectures, including convolutional neural networks (CNNs), recurrent neural networks (RNNs), and spatial-temporal graph neural networks (ST-GNNs), have demonstrated superior predictive accuracy compared to both traditional shallow networks and conventional numerical methods [@elsheikh2022groundwater].
 
-\subsubsection{Conclusions}
-A recent systematic review of neural network applications for groundwater level prediction [41] provides a comprehensive summary of the state-of-the-art. Its conclusion is that while neural networks (especially hybrid models) can help predict groundwater levels, long-term data is essential for reliable forecasting. This is clearly problematic for developing countries. In addition, data quality, pre-processing techniques, and optimal hyperparameter selection improves prediction accuracy. Deep learning models generally excel with larger datasets, while classical ML and shallow neural networks perform better with limited training data. Hybrid approaches incorporating wavelet decomposition, ensemble methods, or data assimilation consistently outperform stand-alone models.
+Critically, ML techniques show particular promise in sparse data scenarios, handling missing values and capturing the complex spatial-temporal dependencies that characterize interconnected groundwater systems [@shu2025missing]. For example, there is often a lag between rainfall and groundwater change, as different groundwater systems percolate at different rates.
 
-\section{Synthesis}
-The evolution of AI and ML in groundwater modelling reflects broader trends in computational hydrology. Early NN applications in the 1990-2000s established feasibility and identified key modelling considerations. The introduction of SVMs and ensemble methods in the 2000s-2010s provided robust alternatives with strong theoretical foundations. The deep learning revolution beginning around 2016-2018, particularly LSTM networks for sequential data, transformed the field by enabling unprecedented accuracy and the ability to learn long-term dependencies automatically.
+Recent advances in ML methods have not been tested at national scale. An obvious opportunity exists to apply AI/ML techniques to enhance the predictions provided by purely physics-based computational models.
 
-Recent innovations—including CNN-LSTM hybrids, physics-informed neural operators (PINNs), and graph neural networks—represent the cutting edge, addressing limitations of purely data-driven approaches through integration of spatial context, physical constraints, and operator learning frameworks. The field continues to evolve toward hybrid physics-ML systems that balance interpretability with predictive power, offering promising directions for sustainable groundwater management under increasing uncertainty.
+#### Research Question 1: Which ML techniques are appropriate for national-scale groundwater modelling, and how much can they improve on the prediction accuracy of the physical models currently used?
 
-The state-of-the-art has achieved a high degree of accuracy of prediction of groundwater level behaviour. The following series of graphs of the measure of error R² show the improvement even within classical ML approaches, and more recent hybrid approaches are seeing R² approach values of 0.99.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.75\linewidth]{groundwater-progress.png}
-    \caption{Progress in accuracy in predicting groundwater level from early ML.}
-\end{figure}
+### Review of Prior ML Techniques
 
-\subsection{Outstanding Challenges}
-One of the most fundamental limitations is insufficient training data, particularly in many regions of the world. Groundwater domains typically lack extensive, labelled datasets compared to domains like computer vision or natural language processing. Long-term historical data—ideally 10 or more years—is essential for reliable groundwater level (GWL) forecasting, yet such comprehensive records are rarely available. This scarcity is particularly acute in developing countries where monitoring infrastructure remains limited or unreliable. Further use of satellite-gathered gravitational data may help in this regard.
+This review classifies prior advances by the technology used. 
 
-Another unresolved challenge is to build an AI-powered model at a national scale. The UK has mature geological and hydrogeological mapping, and the British Geology Society (BGS) has an open dataset policy.  The Joint UK Land Environment Simulator (JULES) project is developing the Hydro-JULES research programme, delivering a new generation of terrestrial hydrological models. 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.75\linewidth]{hydro-jules.jpg}
-    \caption{Hydro-JULES grid mapping.}
-\end{figure}
-One of the major outputs is the British Groundwater Model (BGWM) [42], covering Great Britain at down to 1 KM scale to simulate transient groundwater dynamics and surface water/groundwater interactions at the national scale. Such models also exist for other countries, such as China [43]. BGWM currently models flow using the Fortran-based MODFLOW 6, and there remains an obvious opportunity to bring AI/ML techniques to enhance or supplement the predictions provided by purely physics-based computational models.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.75\linewidth]{uk-geological-grid.png}
-    \caption{1 KM resolution of BGWM grids.}
-\end{figure}
+#### Support Vector Machines (SVM)
 
-Through the development of new models that better simulate the movement of water, both vertically and laterally, advances in land surface–boundary layer science can be made.  Questions under consideration at the British mainland scale are:
-\begin{itemize}
-    \item How can an integrated approach improve the simulation of major flooding events such as the 2013–14 floods?
-    \item How can a holistic approach be undertaken to assess water resources under drought conditions?
-\end{itemize}
+Support vector machines emerged as a powerful alternative to early neural networks in the early 2000s. Yoon˙ et al. [@yoon2011comparative] conducted a comparative study demonstrating that SVMs outperformed traditional NNs for predicting groundwater levels in coastal aquifers. The technique excelled at handling non-linear relationships by mapping inputs to higher-dimensional spaces using kernel functions, particularly the radial basis function (RBF) kernel.
 
-\section{Research Questions}
-\subsection{How can an optimum ML model for groundwater heights and flows be further refined?}
-\subsubsection{Can physical models be added to the loss-function of the latest spatial-temporal graph neural networks?}
-Although there has been extensive work looking at how ML can help with groundwater modelling, most of this work has focussed on a single groundwater system or aquifer. Although physical features have been incorporated into physics-informed and graph neural network models, this has been limited to local scale and the data have been hand crafted. 
+#### Random Forest (RF)
 
-Additionally, although it's clear that physical models (like MODFLOW) still dominate day-to-day modelling used by water companies and authorities, there is a gap in adding physics-based loss functions to spatial-temporal graph neural networks (in other words, to date, there is no evidence of a PI-ST-GNN implementation for groundwater in the literature).
+Random forest algorithms have become widely adopted for groundwater modelling due to their ensemble approach and ability to handle high-dimensional datasets while mitigating over-fitting. The method constructs multiple random decision trees using bootstrap sampling and aggregates their predictions with voting to improve robustness. The original paper by Breiman˙ [@breiman2001random] was considered transformational, and more recently RFs have been shown to support effective spatial prediction [@rohde2021mlgwdepth].
 
-\subsection{How can groundwater be modelled at the national scale using ML and AI?}
-Geological maps now exist for countries such as the UK at 1 KM scale, and these have been married to physical models of groundwater movement and ground/surface interaction. The use of conventional physical computational models is unsurprising as they are very mature (40 years in development) and highly trusted. Additionally, hydrogeologists have spent a career working and achieving familiarity with such models. But it has been shown that aquifers contain many discontinuities which cannot be mapped, and for these, ML models trained on observational data may well produce better results. 
+#### Ensemble Learning: XGBoost, CatBoost, and Gradient Boosting
 
-Given the recent development of national-scale geological mapping and water level measurements datasets, there is a perfect opportunity to evaluate whether it's possible to combine accuracy and scale with ML in a way not achieved before.
+Modern ensemble boosting methods have demonstrated performance in groundwater applications. Chen˙ and Guestrin˙ developed XGBoost, which uses regularized model formalization to control over-fitting [@chen2016xgboost]. It has shown superior prediction in multiple comparative studies [@xiong2023spatial], and a comprehensive study of six ensemble models (RF, AdaBoost, XGBoost, CatBoost, GBDT, and LightGBM) again identified XGBoost as having superior performance in groundwater potential mapping [@uddin2025ensemble]. 
 
-If modelling is successful, an important aspect is how to bring that model to practitioners in an easy-to-use form. It's important that the model is open, licensed, and available for implementation (for example, from a GitHub repository); previous work on ML for groundwater prediction remains limited to research papers, with the code and implementation data remaining unpublished.
+#### Early Neural Networks
 
-\subsection{Can we use the new national-scale high resolution Hydro-JULES mapping in the UK?}
-There is no current record in the literature of using ML with Hydro-JULES.
+The application of NNs in groundwater modelling gained prominence in the early 1990s [@maier1996use]. Maier˙ and Dandy˙ published a seminal review [@maier2000neural], establishing fundamental guidelines for developing neural network models for water resource variables. This outlined essential development stages including performance criteria selection, data division and preprocessing, input variable determination, network architecture design, and model validation.
 
-The UK's hydrogeology is defined by significant spatial variation, a direct result of its complex and highly varied geological history. This is reflected in the following table:
-\begin{table}[h!]
-\centering
-\renewcommand{\arraystretch}{1.1}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{|p{2.6cm}|p{2.7cm}|p{2.9cm}|p{3.0cm}|}
-\hline
-\textbf{Region}           & \textbf{Dominant Geology}         & \textbf{Aquifer Type}           & \textbf{Groundwater Importance} \\ \hline
-South East England        & Chalk, Permo-Triassic Ss.         & Productive fissured             & Very high ($>$75\%) [16]        \\ \hline
-East Midlands             & Jurassic Limestone                 & Fissured/inter-granular          & Moderate to high                \\ \hline
-Wales \& Scotland         & Ordovician, Devonian, etc.         & Low permeability                & Low (ca. 5\%) [16]              \\ \hline
-Northern England          & Carboniferous Limestone            & Rapid fissured                  & Moderate                        \\ \hline
-\end{tabular}
-\caption{Key regional hydrogeological differences in the UK.}
-\end{table}
-Because the UK's hydrogeology shows significant spatial variation, it's a challenging but rewarding region in which to undertake ML modelling of groundwater. Additionally, datasets are widely available, including groundwater level and rainfall measurements.
+Coulibaly˙ et al. calibrated three types of NN model using groundwater level and hydro-meteorological data, establishing early benchmarks for model performance [@coulibaly2001improving]. Lallahem et al. evaluated neural networks for groundwater level estimation in fractured media [@lallahem2005use]. Their influential research demonstrated that NNs with appropriate architecture could effectively model groundwater systems with R² values approaching 0.95.
 
-\section{Conclusion}
-This work has benefit for all societal groups. Although those from lower social-economic groups do not necessarily experience greater flood risk, they have less ability to prepare for or recover from flood damage, and the financial consequences of flooding are much greater. The research is consumptive in computing power and energy use, and care will be taken to make analysis efficient. The research does not handle personalised data, and no other ethical concerns have been identified, although a full assessment will be undertaken.
+Nayak˙ et al. conducted groundwater level forecasting in shallow aquifers using NN approaches, comparing multiple back-propagation algorithms. The Levenberg˙-Marquardt˙ algorithm emerged as the best performer, showing superior results with minimum deviation values mostly within ±0.5 meters and acceptable prediction accuracy exceeding 94.52\% [@nayak2006groundwater].
 
-The proposed research is a tremendous opportunity, provided by new national-scale geological and hydrological mapping, to use ML to better predict groundwater levels across the UK. This could provide a significant benefit in the prediction of both drought (seen at scale about once every 10 years) and flooding (about 50 times since 2017). Furthermore, a generalised model could be applied to other countries and regions, provided that a similar form of geological mapping and rainfall data input is available.
+#### Long Short-Term Memory (LSTM) Networks
 
-\section{Bibliography}
-1. National Population and Housing Census 2021 Mortality in Nepal Nepal \\
-https://censusnepal.cbs.gov.np/results/files/result-folder/Mortality\%20in\%20Nepal.pdf
-\\\\
-2. Jomaa. I. (2025). Other Drivers of Climate Change Groundwater Water Depletion. \\
-J Geol Min, 2(2), 01-09.
-\\\\
-3. Mo, Weiwei et al. Embodied energy comparison of surface water and groundwater supply options. \\
-Water research vol. 45,17 (2011): 5577-86. https://doi.org/10.1016/j.watres.2011.08.016
-\\\\
-4. Hai Tao et al. (2022) Groundwater level prediction using machine learning models: A comprehensive review. \\
-Neurocomputing Volume 489, 7 June 2022, Pages 271-308
-\\\\
-5. UN World Water Development Report 2022
-\\\\
-6. Water abstraction by source and economic sector in Europe, European Environment Agency, 2024. \\
-https://www.eea.europa.eu/en/analysis/indicators/water-abstraction-by-source-and
-\\\\
-8. Dalin, C., Wada, Y., Kastner, T. et al. Groundwater depletion embedded in international food trade. \\
-Nature 543, 700–704 (2017). https://doi.org/10.1038/nature21403
-\\\\
-9. The Gravity Recovery and Climate Experiment Follow-on (GRACE-FO): Tracking groundwater changes around the world. https://grace.jpl.nasa.gov/applications/groundwater/
-\\\\
-10. Yoshihide Wada et al., Fate of water pumped from underground and contributions to sea-level rise. \\
-https://pure.iiasa.ac.at/id/eprint/13009/1/Fate\%20of\%20water\%20pumped\%20from\%20underground\%20and.pdf
-\\\\
-11. Kendon, E.J. et al. Variability conceals emerging trend in 100yr projections of UK local hourly rainfall extremes. \\
-Nat Commun 14, 1133 (2023). https://doi.org/10.1038/s41467-023-36499-9
-\\\\
-12. Maryam Zakir-Hussain. Why hosepipe bans across Britain could continue into the winter. \\
-https://www.independent.co.uk/bulletin/news/hosepipe-ban-drought-winter-environment-agency-met-office-b2865672.html
-\\\\
-13. Reinsch, S. et al. A.M. Temperate Soils Exposed to Drought—Key Processes, Impacts, Indicators, and Unknowns. \\
-Land 2024, 13, 1759. https://doi.org/10.3390/land13111759
-\\\\
-14. Unpacking the 2024 Annual Sewage Spill Data, Rivers Trust. \\
-https://theriverstrust.org/about-us/news/2024-sewage-spill-cso-data
-\\\\
-15. David C. Bradley, Daniel Cadman and Nigel J. Milner. Ecological indicators of the effects of abstraction and flow regulation. \\
-https://www.wfduk.org/sites/default/files/Media/Assessing\%20the\%20status\%20of\%20the\%20water\%20environment/WFD21D\%20Final\%20Report-30\%2008\%2012.pdf
-\\\\
-16. Condon, L. E. et al. (2021). Global groundwater modeling and monitoring: Opportunities and challenges. \\
-Water Resources Research, 57, e2020WR029500. https://doi.org/10.1029/2020WR029500
-\\\\
-17. Hill, M. C., \& Tiedeman, C. R. (2007). Effective Groundwater Model Calibration: With Analysis of Data, Sensitivities, Predictions, and Uncertainty. 
-John Wiley.
-\\\\
-18. Juan S. Acero Triana, Maria L. Chu et al. Beyond model metrics: The perils of calibrating hydrologic models. \\
-https://doi.org/10.1016/j.jhydrol.2019.124032
-\\\\
-19. Elsheikh, A. H. et al. (2022). Groundwater level prediction using machine learning models: A comprehensive review. \\
-Neurocomputing, 489, 271–308. https://doi.org/10.1016/j.neucom.2022.02.034
-\\\\
-20. Shu, L., Ji, Y., Wang, X., \& Zhan, D. (2025). Missing Data Handling: A Comprehensive Review, Taxonomy, and Future Directions. \\
-Scientific Programming, 2025, Article ID 1234567. 
-\\\\
-23. Heesung Yoon et al. A comparative study of artificial neural networks and support vector machines for predicting groundwater levels in a 
-coastal aquifer. \\
-Journal of Hydrology Volume 396, Issues 1–2, 5 January 2011, Pages 128-138.  https://agris.fao.org/search/en/providers/122535/records/65deac254c5aef494fdd2713
-\\\\
-24. T Sai Lahari, Mr. G. Suneel. Predicting Groundwater Levels: A Machine Learning Approach with Support Vector Regression. \\
-International Journal of Research Publication and Reviews, Vol 5, no 11, pp 3869-3877 November 2024, https://ijrpr.com/uploads/V5ISSUE11/IJRPR35153.pdf
-\\\\
-25. Breiman, L. Random Forests. Machine Learning 45, 5–32 (2001). \\
-https://doi.org/10.1023/A:1010933404324
-\\\\
-26. Rohde, M. M., et al. (2021). A Machine Learning Approach to Predict Groundwater Depth Beneath Groundwater-Dependent Ecosystems \\
-Across California. Frontiers in Environmental Science, 9, 738279.
-\\\\
-27. Chen, Tianqi, and Carlos Guestrin. XGBoost: A Scalable Tree Boosting System. \\
-Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD), 2016. \\
-https://dl.acm.org/doi/10.1145/2939672.2939785
-\\\\
-28. Xiong, H.et al. (2023). Spatial prediction of groundwater potential by various novel boosting-based ensemble learning models in mountainous areas. \\
-Geocarto International, 38(1). https://doi.org/10.1080/10106049.2023.2274870
-\\\\
-29. Mohammed Sakib Uddin et al. An ensemble machine learning approach for predicting groundwater storage for sustainable management 
-of water resources. \\
-Groundwater for Sustainable Development, Volume 29, 2025, https://doi.org/10.1016/j.gsd.2025.101417.
-\\\\
-30. Holger R. Maier, Graeme C. Dandy. 1996. The Use of Artificial Neural Networks for the Prediction of Water Quality Parameters. \\
-https://doi.org/10.1029/96WR03529
-\\\\
-31. Holger R. Maier, Graeme C. Dandy,. Neural networks for the prediction and forecasting of water resources variables: a review of modelling issues and applications. \\
-Environmental Modelling \& Software, Volume 15, Issue 1, 2000, https://doi.org/10.1016/S1364-8152(99)00007-9.
-\\\\
-32. Paulin Coulibaly, Bernard Bobée, François Anctil. Improving extreme hydrologic events forecasting using a new criterion for artificial neural network selection.\\
-Hydrological Processes. Volume15, Issue8 15 June 2001.  https://doi.org/10.1002/hyp.445
-\\\\
-33. S. Lallahem, et al. On the use of neural networks to evaluate groundwater levels in fractured media. \\
-Journal of Hydrology,Volume 307, Issues 1–4, 2005, https://doi.org/10.1016/j.jhydrol.2004.10.005.
-\\\\
-34. Nayak, Purna C., YR Satyaji Rao, and K. P. Sudheer. Groundwater level forecasting in a shallow aquifer using artificial neural network approach. \\
-Water resources management 20.1 (2006): 77-90.
-\\\\
-35. Kratzert, Frederik et al. (2018). Rainfall–runoff modelling using Long Short-Term Memory (LSTM) networks. \\
-Hydrology and Earth System Sciences. 22. 6005-6022. https://doi.org/10.5194/hess-22-6005-2018
-\\\\
-36. Jianfeng Zhang et al. (2018) Developing a Long Short-Term Memory (LSTM) based model for predicting water table depth in agricultural areas \\
-Journal of Hydrology Volume 561, June 2018, Pages 918-929 https://atmos.eoas.fsu.edu/~mye/pdf/paper85.pdf
-\\\\
-37. Ryan Solgi et al. (2021) Long short-term memory neural network (LSTM-NN) for aquifer level time series forecasting using in-situ piezometric observations.\\
-Journal of Hydrology,Volume 601,2021, https://doi.org/10.1016/j.jhydrol.2021.126800.
-\\\\
-38. J. Y. Seo and S. -I. Lee, Predicting Changes in Spatiotemporal Groundwater Storage Through the Integration of Multi-Satellite Data and Deep Learning Models. \\
-IEEE Access, vol. 9, 2021, doi: 10.1109/ACCESS.2021.3130306.
-\\\\
-39. Maria Luisa Taccari, He Wang, Somdatta Goswami et al. Developing a cost-effective emulator for groundwater flow modelling using deep neural operators. \\
-Journal of Hydrology, https://doi.org/10.1016/j.jhydrol.2023.130551.
-\\\\
-40. Taccari, et al. (2024). Spatial-Temporal Graph Neural Networks for Groundwater Data. \\
-10.21203/rs.3.rs-4009213/v1. 
-\\\\
-41. Samuel K. Afful et al. (2025) A systematic review of neural network applications for groundwater level prediction. \\
-https://nora.nerc.ac.uk/id/eprint/540185/1/N540185JA.pdf
-42. Hydro-JULES website. \\
-https://hydro-jules.org/sites/default/files/2022-12/Creating\%20the\%20very\%20first\%20groundwater\%20model\%20of\%20the\%20British\%20mainland.pdf
-\\\\
-43. Chen Yang et al. CONCN: a high-resolution, integrated surface water–groundwater ParFlow modeling platform of continental China. \\
-https://doi.org/10.5194/hess-29-2201-2025
+The introduction of LSTM networks to hydrology marked a paradigm shift. Kratzert˙ et al. [@kratzert2018rainfall] published a landmark paper applying LSTM networks to rainfall run-off modelling across 241 catchments. This study demonstrated that LSTMs could learn long-term dependencies essential for modelling storage effects in catchments, outperforming the well-known Sacramento Soil Moisture Accounting Model (SAC-SMA).
+
+Zhang˙ et al. [@zhang2018developing] developed an LSTM-based model for predicting water table depth in agricultural areas, achieving remarkable accuracy. The LSTM model demonstrated R² scores ranging from 0.789 to 0.952, substantially outperforming traditional feed-forward neural networks. This work showed that dropout methods effectively prevented over-fitting and that LSTM architecture possessed strong learning ability for time-series groundwater data.
+
+Solgi˙ et al. [@solgi2021lstmnn] demonstrated that LSTM networks could predict groundwater levels with exceptional accuracy: R² of at least 99.89\% for one-cycle predictions and 90\% for 26-cycle ahead predictions over 17 years of data. The study confirmed LSTM's superiority over feed-forward neural networks in both point prediction and prediction interval tasks.
+
+#### Convolutional Neural Networks (CNN)
+
+Seo˙ and Lee˙ [@seo2021predicting] advanced groundwater modelling by developing CNN-LSTM hybrid architectures, combining CNN's spatial feature extraction with LSTM's temporal dependency handling. The C-LSTM model produced more accurate groundwater simulations than stand-alone CNN or LSTM and showed that the use of parameters recorded by GRACE-FO (gravity detection) satellites as training data for deep learning models could play an important role in the model's performance.
+
+### Technique Summary
+
+A recent systematic review of neural network applications for groundwater level prediction [@afful2025review] provides a comprehensive summary of the state-of-the-art. One conclusion is that a fundamental limitation is insufficient training data, as the domain lacks the extensive, labelled datasets from the computer vision or natural language processing domains. Long-term historical data, ideally for 10 years, is essential for reliable groundwater level (GWL) forecasting. This scarcity is particularly acute in developing countries where monitoring infrastructure remains limited or unreliable.
+
+### Methodology
+This wide field of research will be tackled with a measured and incremental approach:
+1. Assess the architecture and interface for the current MODFLOW implementation of BGWM.
+2. Work with a limited time and spatial subset of the underlying datasets (groundwater levels and geology). Pick two regions; one where the model performs well, and one where it underperforms.
+3. Determine 3 high-performing ML approaches, following an in-depth review of published results.
+4. Apply the 3 chosen ML approaches to the BGWM subsets and evaluate the models and parameters with highest predictive accuracy.
+5. Evaluate the selected approach against baseline MODFLOW prediction.
+6. Apply the selected approach at a national scale.
+7. Re-evaluate, noting and addressing scaling issues, particularly in relation to the following sub-questions:
+
+#### Resolution
+What is the best resolution available using appropriately pre-trained ML inference for national-scale groundwater prediction using desktop hardware? A correlation is expected between granularity (resolution) and the computational resource needed when using an established ML model. In other words, high-resolution models need more training and inference computing power. This question can be reframed as: How is it possible to make simulation runs available to scientists with lower-powered computers, such as desktop or field systems?
+
+#### Adaptability to different countries
+Can transfer learning of model weights be used to operate in a region with little data? Challenges exist in countries with rapidly expanding populations and rising living standards such as northern India, where levels are dropping 30cm/year and a 6m height anomaly is seen in images produced by NASA. In developing countries there is generally less historical / geological data, so how can ML models be adapted so that they function well in data-constrained regions?
+
+## Hybrid Neural Network Models
+
+Groundwater flow and height depend on physical laws (e.g. fluid flow in porous bodies), space (e.g. location of extraction points, rivers and rainfall catchment boundaries), and time (e.g. the elapsed time between rainfall soaking into the ground and reemerging in a river). 
+
+There is a research gap in adding physics-based loss functions to spatial-temporal graph neural networks to create a PI-ST-GNN implementation for groundwater.
+ 
+#### Research Question 2: Can physical models be added to the loss function of the latest spatial-temporal graph neural networks?
+
+### Review of Prior ML Techniques
+
+To date, research has examined physics-informed and graph neural network models separately, but not together, and not at a national scale.
+
+#### Physics-Informed Networks
+Goswami˙ et al. [@taccari2023emulator] introduced DeepONet (deep operator networks) to groundwater modelling, demonstrating that AI-based approaches could successfully address the complexities of simulating subsurface flows. DeepONet uses two deep neural networks (branch and trunk) to learn mappings between infinite-dimensional function spaces.
+
+#### Spatial Temporal Graph Neural Networks
+Graph neural networks reflect a physical topography through a graph representation of edges and nodes. 
+Taccari˙ et al. [@taccari2024stgnn] pioneered the application of spatial-temporal graph neural networks (ST-GNNs) to groundwater level prediction. This approach addressed the limitation of previous LSTM methods that predominantly focused on temporal dynamics while overlooking spatial relationships. The ST-GNN model showed significant improvements, particularly for handling missing data and long-term forecasting with minimal bias. The graph-based framework integrated physical borehole interconnectivity and temporal aspects, capturing complex interactions within groundwater systems over distance and time.
+
+### Methodology
+The proposed research approach uses existing techniques as the control to evaluate against:
+1. Analyse a spatial-temporal (ST) network implementation, looking at the structure of the loss function.
+2. Look at previous PINNs, and document how physical hydrology laws and geology (e.g. rock porosity) are implemented in loss calculation.
+3. Augment the ST network loss-function with physics-derived loss functions.
+4. Work with a limited time and spatial subset of the underlying datasets (groundwater levels and geology). 
+5. Evaluate the prediction accuracy of the PI-ST network against both the PI network and ST network for the chosen region.
+
+## Conclusion
+
+There is a tremendous opportunity to use ML to better predict groundwater levels across the UK provided by new national-scale geological and hydrological mapping. This could improve the prediction of both drought (seen at scale about once every 10 years) and flooding (about 50 times since 2017). Furthermore, a generalised model could be applied to other countries and regions, provided that a similar form of geological mapping and rainfall data input is available. 
+
+This work has benefit for all societal groups. Although those from lower socio-economic groups do not necessarily experience greater flood risk, they have less ability to prepare for or recover from flood damage, and the financial consequences of flooding are much greater. The research is consumptive in computing power and energy use, and care will be taken to make analysis efficient. The research does not handle personalised data, and no other ethical concerns have been identified, although a full assessment will be undertaken.
+
+\end{markdown} 
+
+\bibliographystyle{splncs04}
+\bibliography{main}
+
 \end{document}
